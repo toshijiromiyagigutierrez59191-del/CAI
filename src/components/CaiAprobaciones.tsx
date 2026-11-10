@@ -135,12 +135,13 @@ export function CaiAprobaciones({ adminEmail, error: authError = '', onSignOut }
             </p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-[760px] w-full divide-y divide-slate-200 text-sm">
+              <table className="min-w-[900px] w-full divide-y divide-slate-200 text-sm">
                 <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
                   <tr>
                     <th scope="col" className="px-5 py-3 font-semibold">Nombre completo</th>
-                    <th scope="col" className="px-5 py-3 font-semibold">Cédula</th>
-                    <th scope="col" className="px-5 py-3 font-semibold">Centro solicitado</th>
+                    <th scope="col" className="px-5 py-3 font-semibold">Usuario / Cédula</th>
+                    <th scope="col" className="px-5 py-3 font-semibold">Teléfono</th>
+                    <th scope="col" className="px-5 py-3 font-semibold">Establecimiento</th>
                     <th scope="col" className="px-5 py-3 font-semibold">Fecha</th>
                     <th scope="col" className="px-5 py-3 text-right font-semibold">Acciones</th>
                   </tr>
@@ -150,13 +151,12 @@ export function CaiAprobaciones({ adminEmail, error: authError = '', onSignOut }
                     <tr key={solicitud.id}>
                       <th scope="row" className="px-5 py-4 text-left font-semibold text-slate-800">
                         {solicitud.nombre_completo}
-                        {solicitud.telefono && (
-                          <span className="mt-1 block text-xs font-normal text-slate-500">
-                            Tel. {solicitud.telefono}
-                          </span>
-                        )}
                       </th>
-                      <td className="whitespace-nowrap px-5 py-4 text-slate-700">{solicitud.cedula || '—'}</td>
+                      <td className="px-5 py-4 text-slate-700">
+                        <span className="block">{solicitud.usuario}</span>
+                        <span className="mt-1 block text-xs text-slate-500">C.I. {solicitud.cedula || '—'}</span>
+                      </td>
+                      <td className="whitespace-nowrap px-5 py-4 text-slate-700">{solicitud.telefono || '—'}</td>
                       <td className="px-5 py-4 text-slate-700">{solicitud.establecimiento_nombre}</td>
                       <td className="whitespace-nowrap px-5 py-4 text-slate-500">
                         {new Intl.DateTimeFormat('es-BO', { dateStyle: 'medium' }).format(

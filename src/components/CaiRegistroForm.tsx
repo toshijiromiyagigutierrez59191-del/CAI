@@ -18,6 +18,9 @@ type CaiRegistroFormProps = {
   grupos: Grupo[]
   onGrupoChange: (grupoId: string) => void
   gestion?: number
+  initialIndicadorId?: string
+  initialMes?: number
+  onSaved?: () => void
 }
 
 const MESES = [
@@ -55,6 +58,9 @@ export function CaiRegistroForm({
   grupos,
   onGrupoChange,
   gestion = 2026,
+  initialIndicadorId,
+  initialMes,
+  onSaved,
 }: CaiRegistroFormProps) {
   const [indicadores, setIndicadores] = useState<Indicador[]>([])
   const [indicadorId, setIndicadorId] = useState('')
@@ -112,6 +118,12 @@ export function CaiRegistroForm({
             return numA - numB
           })
           setIndicadores(indicadoresOrdenados)
+          setIndicadorId(
+            indicadoresOrdenados.some((indicator) => indicator.id === initialIndicadorId)
+              ? initialIndicadorId ?? ''
+              : '',
+          )
+          setMes(initialMes ? String(initialMes) : '')
         }
       } catch (error) {
         if (active) {
@@ -126,7 +138,7 @@ export function CaiRegistroForm({
     return () => {
       active = false
     }
-  }, [grupoId])
+  }, [grupoId, initialIndicadorId, initialMes])
 
   useEffect(() => {
     let active = true
@@ -399,6 +411,7 @@ export function CaiRegistroForm({
           ? 'El registro mensual de productividad se guardó correctamente.'
           : 'La configuración y el registro mensual se guardaron correctamente.',
       })
+      onSaved?.()
     } catch (error) {
       setNotice({ type: 'error', text: errorMessage(error) })
     } finally {

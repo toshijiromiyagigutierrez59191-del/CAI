@@ -204,6 +204,7 @@ export interface Database {
           id: string
           nombre_completo: string
           cedula: string | null
+          usuario: string
           telefono: string | null
           establecimiento_nombre: string
           created_at: string

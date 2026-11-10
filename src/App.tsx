@@ -7,6 +7,8 @@ import {
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
+  ShieldCheck,
+  TableProperties,
   X,
 } from 'lucide-react'
 import {
@@ -24,9 +26,113 @@ import logoSus from './assets/logo_SUS.png'
 const SESSION_STORAGE_KEY = 'sicofs_operador'
 type Grupo = Database['public']['Tables']['cai_grupos']['Row']
 type ActiveView = 'inicio' | 'registro' | 'reportes'
+type AdminView = 'aprobaciones' | 'matriz'
 const CaiReportes = lazy(() =>
   import('./components/CaiReportes').then((module) => ({ default: module.CaiReportes })),
 )
+const CaiMatrizRevision = lazy(() =>
+  import('./components/CaiMatrizRevision').then((module) => ({ default: module.CaiMatrizRevision })),
+)
+
+type AdminSidebarProps = {
+  activeView: AdminView
+  adminEmail: string
+  onSelectView: (view: AdminView) => void
+  onSignOut: () => void
+  isMobile?: boolean
+  onCloseMobile?: () => void
+  isCollapsed?: boolean
+  onToggleCollapsed?: () => void
+}
+
+function AdminSidebar({
+  activeView,
+  adminEmail,
+  onSelectView,
+  onSignOut,
+  isMobile = false,
+  onCloseMobile,
+  isCollapsed = false,
+  onToggleCollapsed,
+}: AdminSidebarProps) {
+  const links: { view: AdminView; label: string; icon: typeof ShieldCheck }[] = [
+    { view: 'aprobaciones', label: 'Aprobación de Operadores', icon: ShieldCheck },
+    { view: 'matriz', label: 'Matriz Mensual', icon: TableProperties },
+  ]
+
+  return (
+    <aside
+      className={`flex flex-col bg-[#0d4859] text-white shadow-xl ${
+        isMobile
+          ? 'relative z-auto h-full w-full'
+          : `fixed inset-y-0 left-0 z-30 ${isCollapsed ? 'w-16' : 'w-64'}`
+      }`}
+    >
+      <div className={`flex items-center border-b border-white/15 py-4 ${isCollapsed ? 'justify-center px-2' : 'justify-between px-4'}`}>
+        {!isCollapsed && <span className="text-sm font-bold">Administración CAI</span>}
+        {isMobile ? (
+          <button
+            type="button"
+            aria-label="Cerrar menú de navegación"
+            onClick={onCloseMobile}
+            className="rounded-lg p-2 text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white"
+          >
+            <X size={20} />
+          </button>
+        ) : onToggleCollapsed ? (
+          <button
+            type="button"
+            aria-label={isCollapsed ? 'Expandir menú lateral' : 'Contraer menú lateral'}
+            aria-expanded={!isCollapsed}
+            onClick={onToggleCollapsed}
+            className="rounded-lg px-2 py-1 text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white"
+          >
+            {isCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
+          </button>
+        ) : null}
+      </div>
+      {!isCollapsed && (
+        <div className="border-b border-white/15 px-5 py-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-teal-200">Administrador</p>
+          <p className="mt-2 break-all text-sm text-white">{adminEmail}</p>
+        </div>
+      )}
+      <nav aria-label="Navegación administrativa" className="flex-1 space-y-1 px-3 py-5">
+        {links.map(({ view, label, icon: Icon }) => (
+          <button
+            key={view}
+            type="button"
+            aria-current={activeView === view ? 'page' : undefined}
+            title={isCollapsed ? label : undefined}
+            onClick={() => {
+              onSelectView(view)
+              onCloseMobile?.()
+            }}
+            className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm transition focus:outline-none focus:ring-2 focus:ring-white ${
+              activeView === view
+                ? 'bg-white font-semibold text-[#0d4859] shadow-sm'
+                : 'text-teal-50 hover:bg-white/10'
+            }`}
+          >
+            <Icon size={19} aria-hidden="true" />
+            {!isCollapsed && <span>{label}</span>}
+          </button>
+        ))}
+      </nav>
+      <div className="border-t border-white/15 p-3">
+        <button
+          type="button"
+          onClick={onSignOut}
+          title={isCollapsed ? 'Cerrar sesión' : undefined}
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm text-teal-50 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white"
+        >
+          <LogOut size={18} aria-hidden="true" />
+          {!isCollapsed && <span>Cerrar sesión</span>}
+        </button>
+      </div>
+    </aside>
+  )
+}
 
 type SidebarProps = {
   activeView: ActiveView
@@ -275,6 +381,7 @@ export function App() {
   const [session, setSession] = useState<CaiSession | null>(readStoredSession)
   const [isGuestSession, setIsGuestSession] = useState(false)
   const [adminEmail, setAdminEmail] = useState('')
+  const [adminView, setAdminView] = useState<AdminView>('aprobaciones')
   const [isCheckingAdminSession, setIsCheckingAdminSession] = useState(true)
   const [adminAuthError, setAdminAuthError] = useState('')
   const [grupos, setGrupos] = useState<Grupo[]>([])
@@ -284,6 +391,8 @@ export function App() {
   const [gruposError, setGruposError] = useState('')
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  const [isAdminMobileMenuOpen, setIsAdminMobileMenuOpen] = useState(false)
+  const [isAdminSidebarCollapsed, setIsAdminSidebarCollapsed] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -398,6 +507,7 @@ export function App() {
       const { error } = await getSupabaseClient().auth.signOut()
       if (error) throw error
       setAdminEmail('')
+      setIsAdminMobileMenuOpen(false)
     } catch (error) {
       setAdminAuthError(
         `No se pudo cerrar la sesión administrativa: ${
@@ -443,11 +553,83 @@ export function App() {
 
   if (adminEmail) {
     return (
-      <CaiAprobaciones
-        adminEmail={adminEmail}
-        error={adminAuthError}
-        onSignOut={() => void handleAdminLogout()}
-      />
+      <div className="min-h-screen bg-slate-100">
+        <div className="hidden md:block">
+          <AdminSidebar
+            activeView={adminView}
+            adminEmail={adminEmail}
+            onSelectView={setAdminView}
+            onSignOut={() => void handleAdminLogout()}
+            isCollapsed={isAdminSidebarCollapsed}
+            onToggleCollapsed={() => setIsAdminSidebarCollapsed((collapsed) => !collapsed)}
+          />
+        </div>
+        <div className={`transition-all duration-300 ${isAdminSidebarCollapsed ? 'md:pl-16' : 'md:pl-64'}`}>
+          <header className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur md:hidden">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-bold text-slate-900">Administración SICOFS · CAI</p>
+              <p className="truncate text-xs text-slate-500">{adminEmail}</p>
+            </div>
+            <button
+              type="button"
+              aria-expanded={isAdminMobileMenuOpen}
+              aria-controls="admin-mobile-navigation"
+              onClick={() => setIsAdminMobileMenuOpen((open) => !open)}
+              className="shrink-0 rounded-lg bg-[#0d4859] px-3 py-2 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-cai-600 focus:ring-offset-2"
+            >
+              {isAdminMobileMenuOpen ? (
+                <span className="inline-flex items-center gap-2"><X size={16} /> Cerrar</span>
+              ) : (
+                <span className="inline-flex items-center gap-2"><Menu size={16} /> Menú</span>
+              )}
+            </button>
+          </header>
+          {isAdminMobileMenuOpen && (
+            <div className="fixed inset-0 z-40 bg-slate-950/40 md:hidden">
+              <aside id="admin-mobile-navigation" className="flex h-full w-[min(20rem,88vw)] flex-col">
+                <AdminSidebar
+                  activeView={adminView}
+                  adminEmail={adminEmail}
+                  onSelectView={setAdminView}
+                  onSignOut={() => void handleAdminLogout()}
+                  isMobile
+                  onCloseMobile={() => setIsAdminMobileMenuOpen(false)}
+                />
+              </aside>
+              <button
+                type="button"
+                aria-label="Cerrar menú administrativo"
+                className="absolute inset-0 -z-10 cursor-default"
+                onClick={() => setIsAdminMobileMenuOpen(false)}
+              />
+            </div>
+          )}
+          {adminView === 'aprobaciones' ? (
+            <CaiAprobaciones
+              adminEmail={adminEmail}
+              error={adminAuthError}
+              onSignOut={() => void handleAdminLogout()}
+            />
+          ) : (
+            <main className="min-h-screen px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+              {adminAuthError && (
+                <div role="alert" className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+                  {adminAuthError}
+                </div>
+              )}
+              <Suspense
+                fallback={
+                  <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500 shadow-sm">
+                    Cargando matriz mensual…
+                  </div>
+                }
+              >
+                <CaiMatrizRevision gestion={2026} />
+              </Suspense>
+            </main>
+          )}
+        </div>
+      </div>
     )
   }
 
