@@ -6,6 +6,8 @@ import {
   getDropoutSourceIndicators,
   getProductivityLevel,
   isCalculatedDropoutIndicator,
+  isMaternalBirthEstablishment,
+  isMaternalBirthIndicator,
   isMonthlyProductivityIndicator,
 } from '../lib/indicatorMetrics'
 
@@ -14,6 +16,7 @@ type Grupo = Database['public']['Tables']['cai_grupos']['Row']
 
 type CaiRegistroFormProps = {
   establecimientoId: string
+  establecimientoNombre: string
   grupoId: string
   grupos: Grupo[]
   onGrupoChange: (grupoId: string) => void
@@ -54,6 +57,7 @@ function errorMessage(error: unknown): string {
 
 export function CaiRegistroForm({
   establecimientoId,
+  establecimientoNombre,
   grupoId,
   grupos,
   onGrupoChange,
@@ -81,6 +85,9 @@ export function CaiRegistroForm({
   const isCalculatedDropout = isCalculatedDropoutIndicator(indicadorSeleccionado)
   const isSrpDropout = Number(indicadorSeleccionado?.numero_indicador) === 14
   const isProductivity = isMonthlyProductivityIndicator(indicadorSeleccionado, grupos)
+  const isRestrictedMaternalBirthIndicator =
+    isMaternalBirthIndicator(indicadorSeleccionado, grupos) &&
+    !isMaternalBirthEstablishment({ nombre: establecimientoNombre })
   const dropoutRate = dosisPrimera === null || dosisSegunda === null
     ? null
     : calculateDropoutRate(dosisPrimera, dosisSegunda)
@@ -324,6 +331,14 @@ export function CaiRegistroForm({
     event.preventDefault()
     setNotice(undefined)
 
+    if (isRestrictedMaternalBirthIndicator) {
+      setNotice({
+        type: 'error',
+        text: 'El Indicador 26 solo aplica a DIVINO NIÑO, ERNESTO CHE GUEVARA, JUANA AZURDUY DE PADILLA y HUGO CASSAL BARBA.',
+      })
+      return
+    }
+
     if (isCalculatedDropout) {
       setNotice({
         type: 'error',
@@ -513,6 +528,17 @@ export function CaiRegistroForm({
         </section>
       )}
 
+      {isRestrictedMaternalBirthIndicator && (
+        <div
+          role="alert"
+          className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+        >
+          El Indicador 26 (Cobertura de Parto Institucional) no aplica a {establecimientoNombre}.
+          Solo se permite el registro en DIVINO NIÑO, ERNESTO CHE GUEVARA, JUANA AZURDUY DE PADILLA
+          y HUGO CASSAL BARBA.
+        </div>
+      )}
+
       {!isProductivity && !isCalculatedDropout && (
       <section aria-labelledby="config-heading" className="space-y-5">
         <div>
@@ -533,7 +559,7 @@ export function CaiRegistroForm({
               placeholder="Ej. 0.96"
               value={compromiso}
               onChange={(event) => setCompromiso(event.target.value)}
-              disabled={!indicadorId || isLoadingConfig}
+              disabled={!indicadorId || isLoadingConfig || isRestrictedMaternalBirthIndicator}
               required
             />
           </label>
@@ -548,7 +574,7 @@ export function CaiRegistroForm({
               placeholder="Ej. 250"
               value={poblacion}
               onChange={(event) => setPoblacion(event.target.value)}
-              disabled={!indicadorId || isLoadingConfig}
+              disabled={!indicadorId || isLoadingConfig || isRestrictedMaternalBirthIndicator}
               required
             />
           </label>
@@ -577,7 +603,7 @@ export function CaiRegistroForm({
               className={inputClassName}
               value={mes}
               onChange={(event) => handleMesChange(event.target.value)}
-              disabled={!indicadorId}
+              disabled={!indicadorId || isRestrictedMaternalBirthIndicator}
               required
             >
               <option value="">Seleccione un mes</option>
@@ -636,7 +662,7 @@ export function CaiRegistroForm({
               className={inputClassName}
               value={mes}
               onChange={(event) => handleMesChange(event.target.value)}
-              disabled={!indicadorId}
+              disabled={!indicadorId || isRestrictedMaternalBirthIndicator}
               required
             >
               <option value="">Seleccione un mes</option>
@@ -660,7 +686,7 @@ export function CaiRegistroForm({
               placeholder="Ingrese el valor alcanzado"
               value={numerador}
               onChange={(event) => setNumerador(event.target.value)}
-              disabled={!mes || isLoadingRegistro}
+              disabled={!mes || isLoadingRegistro || isRestrictedMaternalBirthIndicator}
               required
             />
           </label>
@@ -676,7 +702,7 @@ export function CaiRegistroForm({
                 placeholder="Ingrese el total de consultas"
                 value={denominador}
                 onChange={(event) => setDenominador(event.target.value)}
-                disabled={!mes || isLoadingRegistro}
+                disabled={!mes || isLoadingRegistro || isRestrictedMaternalBirthIndicator}
                 required
               />
             </label>
@@ -710,10 +736,21 @@ export function CaiRegistroForm({
         <p className="text-xs text-slate-500">Establecimiento · {establecimientoId}</p>
         <button
           type="submit"
-          disabled={!indicadorId || !mes || isSaving || isLoadingConfig || isLoadingRegistro}
+          disabled={
+            !indicadorId ||
+            !mes ||
+            isSaving ||
+            isLoadingConfig ||
+            isLoadingRegistro ||
+            isRestrictedMaternalBirthIndicator
+          }
           className="inline-flex items-center justify-center rounded-xl bg-cai-700 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-cai-900 focus:outline-none focus:ring-2 focus:ring-cai-600 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-300"
         >
-          {isSaving ? 'Guardando…' : 'Guardar Registro Mensual'}
+          {isRestrictedMaternalBirthIndicator
+            ? 'Indicador no aplica a este establecimiento'
+            : isSaving
+              ? 'Guardando…'
+              : 'Guardar Registro Mensual'}
         </button>
       </div>
       )}

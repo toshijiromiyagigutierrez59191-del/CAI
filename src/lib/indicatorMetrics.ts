@@ -11,7 +11,41 @@ type GroupIdentity = {
   nombre: string
 }
 
+type EstablishmentIdentity = {
+  nombre: string
+}
+
+const MATERNAL_BIRTH_ESTABLISHMENTS = new Set([
+  'DIVINO NINO',
+  'ERNESTO CHE GUEVARA',
+  'JUANA AZURDUY DE PADILLA',
+  'HUGO CASSAL BARBA',
+])
+
 export type ProductivityLevel = 'Bajo' | 'Regular' | 'Bueno' | 'Muy bueno' | 'Sin datos'
+
+function normalizeCatalogName(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLocaleUpperCase()
+}
+
+export function isMaternalBirthIndicator(
+  indicator: Pick<IndicatorIdentity, 'numero_indicador' | 'grupo_id'> | undefined,
+  groups: GroupIdentity[],
+): boolean {
+  if (!indicator || Number(indicator.numero_indicador) !== 26) return false
+
+  const groupName = groups.find((group) => group.id === indicator.grupo_id)?.nombre ?? ''
+  return normalizeCatalogName(groupName) === 'SALUD MATERNA'
+}
+
+export function isMaternalBirthEstablishment(establishment: EstablishmentIdentity): boolean {
+  return MATERNAL_BIRTH_ESTABLISHMENTS.has(normalizeCatalogName(establishment.nombre))
+}
 
 export function isSrpDropoutIndicator(indicator: Pick<IndicatorIdentity, 'numero_indicador'> | undefined): boolean {
   return Number(indicator?.numero_indicador) === 14

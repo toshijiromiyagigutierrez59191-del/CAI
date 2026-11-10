@@ -2,7 +2,11 @@ import { useEffect, useMemo, useState } from 'react'
 import { X } from 'lucide-react'
 import { getSupabaseClient } from '../lib/supabaseClient'
 import type { Database } from '../lib/database.types'
-import { isMonthlyProductivityIndicator } from '../lib/indicatorMetrics'
+import {
+  isMaternalBirthEstablishment,
+  isMaternalBirthIndicator,
+  isMonthlyProductivityIndicator,
+} from '../lib/indicatorMetrics'
 import { CaiRegistroForm } from './CaiRegistroForm'
 
 type Grupo = Pick<Database['public']['Tables']['cai_grupos']['Row'], 'id' | 'nombre' | 'orden'>
@@ -159,6 +163,10 @@ export function CaiMatrizRevision({ gestion }: CaiMatrizRevisionProps) {
     selectedIndicator,
     groups.map(({ id, nombre }) => ({ id, nombre })),
   )
+  const isRestrictedMaternalBirthIndicator = isMaternalBirthIndicator(selectedIndicator, groups)
+  const visibleEstablishments = isRestrictedMaternalBirthIndicator
+    ? establishments.filter(isMaternalBirthEstablishment)
+    : establishments
 
   useEffect(() => {
     let active = true
@@ -324,7 +332,7 @@ export function CaiMatrizRevision({ gestion }: CaiMatrizRevisionProps) {
           <p className="px-6 py-10 text-center text-sm text-slate-500">
             Seleccione un grupo con indicadores para consultar la matriz.
           </p>
-        ) : establishments.length === 0 ? (
+        ) : visibleEstablishments.length === 0 ? (
           <p className="px-6 py-10 text-center text-sm text-slate-500">
             No hay establecimientos disponibles.
           </p>
@@ -353,7 +361,7 @@ export function CaiMatrizRevision({ gestion }: CaiMatrizRevisionProps) {
                 </tr>
               </thead>
               <tbody>
-                {establishments.map((establishment) => {
+                {visibleEstablishments.map((establishment) => {
                   const configuration = configurationsByEstablishment.get(establishment.id)
                   return (
                     <tr key={establishment.id} className="group">
@@ -446,6 +454,7 @@ export function CaiMatrizRevision({ gestion }: CaiMatrizRevisionProps) {
                 <CaiRegistroForm
                   key={`${selectedCell.establecimiento.id}-${selectedIndicator.id}-${selectedCell.mes}-${gestion}`}
                   establecimientoId={selectedCell.establecimiento.id}
+                  establecimientoNombre={selectedCell.establecimiento.nombre}
                   grupoId={selectedGroupId}
                   grupos={groups}
                   onGrupoChange={handleGroupChange}

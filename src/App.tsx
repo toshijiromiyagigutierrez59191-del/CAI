@@ -807,6 +807,7 @@ export function App() {
                     <CaiRegistroForm
                       key={`${session.establecimientoId}-${grupoActivoId}`}
                       establecimientoId={session.establecimientoId}
+                      establecimientoNombre={session.establecimientoNombre}
                       grupoId={grupoActivoId}
                       grupos={grupos}
                       onGrupoChange={handleGroupSelect}

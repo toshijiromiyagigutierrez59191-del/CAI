@@ -30,6 +30,8 @@ import {
   getDropoutSourceIndicators,
   getProductivityLevel,
   isCalculatedDropoutIndicator,
+  isMaternalBirthEstablishment,
+  isMaternalBirthIndicator,
   isMonthlyProductivityIndicator,
   isSrpDropoutIndicator,
 } from '../lib/indicatorMetrics'
@@ -556,6 +558,15 @@ export function CaiReportes({ gestion = 2026 }: CaiReportesProps) {
   const selectedIndicator = indicadores.find((indicador) => indicador.id === indicadorId)
   const hasRequiredSelection =
     Boolean(grupoId) && selectedIndicator?.grupo_id === grupoId
+  const isRestrictedMaternalBirthIndicator =
+    hasRequiredSelection && isMaternalBirthIndicator(selectedIndicator, grupos)
+  const reportEstablishments = useMemo(
+    () =>
+      isRestrictedMaternalBirthIndicator
+        ? establecimientos.filter(isMaternalBirthEstablishment)
+        : establecimientos,
+    [establecimientos, isRestrictedMaternalBirthIndicator],
+  )
   const isProductivityIndicator =
     hasRequiredSelection && isMonthlyProductivityIndicator(selectedIndicator, grupos)
   const isDropoutIndicator =
@@ -577,6 +588,16 @@ export function CaiReportes({ gestion = 2026 }: CaiReportesProps) {
     ? getDropoutSourceIndicators(selectedIndicator, indicadores).finalDose
     : undefined
 
+  useEffect(() => {
+    if (
+      isRestrictedMaternalBirthIndicator &&
+      establecimientoId &&
+      !reportEstablishments.some((establecimiento) => establecimiento.id === establecimientoId)
+    ) {
+      setEstablecimientoId('')
+    }
+  }, [establecimientoId, isRestrictedMaternalBirthIndicator, reportEstablishments])
+
   const reporte = useMemo(() => {
     if (!hasRequiredSelection || !selectedIndicator) {
       return {
@@ -596,12 +617,19 @@ export function CaiReportes({ gestion = 2026 }: CaiReportesProps) {
     const productivityMode = isProductivityIndicator
     const dropoutMode = isDropoutIndicator
     const establecimientosFiltrados = establecimientoId
-      ? establecimientos.filter((establecimiento) => establecimiento.id === establecimientoId)
-      : establecimientos
+      ? reportEstablishments.filter((establecimiento) => establecimiento.id === establecimientoId)
+      : reportEstablishments
+    const reportEstablishmentIds = new Set(reportEstablishments.map((establecimiento) => establecimiento.id))
+    const reportConfigurations = isRestrictedMaternalBirthIndicator
+      ? configuraciones.filter((item) => reportEstablishmentIds.has(item.establecimiento_id))
+      : configuraciones
+    const reportRecords = isRestrictedMaternalBirthIndicator
+      ? registros.filter((item) => reportEstablishmentIds.has(item.establecimiento_id))
+      : registros
 
     const rows = establecimientosFiltrados.map((establecimiento): ReporteEstablecimiento => {
-      const configRows = configuraciones.filter((item) => item.establecimiento_id === establecimiento.id)
-      const registroRows = registros.filter((item) => item.establecimiento_id === establecimiento.id)
+      const configRows = reportConfigurations.filter((item) => item.establecimiento_id === establecimiento.id)
+      const registroRows = reportRecords.filter((item) => item.establecimiento_id === establecimiento.id)
       if (dropoutMode) {
         const sourceRows = registroRows.filter((item) => item.mes <= mes)
         const totalFirstDoses = dropoutFirstDoseIndicator
@@ -804,20 +832,20 @@ export function CaiReportes({ gestion = 2026 }: CaiReportesProps) {
       }
     }
 
-    const poblacionTotal = configuraciones.reduce(
+    const poblacionTotal = reportConfigurations.reduce(
       (total, item) => total + Number(item.poblacion_programada || 0),
       0,
     )
-    const atendidosTotal = registros
+    const atendidosTotal = reportRecords
       .filter((item) => item.mes <= mes)
       .reduce((total, item) => total + Number(item.valor_numerador || 0), 0)
-    const atendidosPrimerPeriodo = registros
+    const atendidosPrimerPeriodo = reportRecords
       .filter((item) => item.mes <= Math.min(mes, 6))
       .reduce((total, item) => total + Number(item.valor_numerador || 0), 0)
-    const atendidosIncremento = registros
+    const atendidosIncremento = reportRecords
       .filter((item) => item.mes > 6 && item.mes <= mes)
       .reduce((total, item) => total + Number(item.valor_numerador || 0), 0)
-    const metaTotalPonderada = configuraciones.reduce(
+    const metaTotalPonderada = reportConfigurations.reduce(
       (total, item) =>
         total +
         asPercentage(Number(item.compromiso_gestion || 0)) * Number(item.poblacion_programada || 0),
@@ -843,9 +871,10 @@ export function CaiReportes({ gestion = 2026 }: CaiReportesProps) {
     }
   }, [
     establecimientoId,
-    establecimientos,
+    reportEstablishments,
     configuraciones,
     registros,
+    isRestrictedMaternalBirthIndicator,
     mes,
     selectedIndicator,
     hasRequiredSelection,
@@ -1119,7 +1148,7 @@ export function CaiReportes({ gestion = 2026 }: CaiReportesProps) {
               disabled={isLoadingCatalogos}
             >
               <option value="">-- Todos los Establecimientos --</option>
-              {establecimientos.map((establecimiento) => (
+              {reportEstablishments.map((establecimiento) => (
                 <option key={establecimiento.id} value={establecimiento.id}>
                   {establecimiento.nombre}
                 </option>
