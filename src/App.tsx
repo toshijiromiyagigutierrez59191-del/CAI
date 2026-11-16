@@ -317,7 +317,7 @@ function Sidebar({
       {!isCollapsed && (
         <div className="border-t border-white/15 px-5 py-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-white">SICOFS · CAI 2026</p>
-          <p className="mt-1 text-xs text-teal-200">Secretaría Municipal de Salud</p>
+          <p className="mt-1 text-xs text-teal-200">Dirección Municipal de Salud</p>
         </div>
       )}
       {isCollapsed && (
@@ -347,7 +347,7 @@ function InstitutionalBanner() {
   <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-white p-2 shadow-sm">
     <img
       src={logoGam}
-      alt="Logotipo del Gobierno Autónomo Municipal de Montero"
+      alt="Logotipo del Gobierno Autónomo Municipal de Okinawa"
       className="h-full w-full object-contain"
     />
   </div>
@@ -355,10 +355,10 @@ function InstitutionalBanner() {
   {/* 2. Texto Centrado que ocupa el espacio intermedio */}
   <div className="flex-1 text-center px-4 min-w-0">
     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-200 sm:text-sm">
-      Gobierno Autónomo Municipal de Montero
+      Gobierno Autónomo Municipal de Okinawa
     </p>
     <p className="mt-1 text-sm font-medium text-white sm:text-base">
-      Secretaría Municipal de Salud
+      Dirección Municipal de Salud
     </p>
     <p className="mt-1 text-sm font-medium text-white sm:text-base">
       Comité de Análisis de Información (CAI)
@@ -733,7 +733,7 @@ export function App() {
             </h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
               {activeView === 'inicio'
-                ? 'Comité de Análisis de Información · Gobierno Autónomo Municipal de Montero'
+                ? 'Comité de Análisis de Información · Gobierno Autónomo Municipal de Okinawa'
                 : activeView === 'reportes'
                   ? 'Analice la cobertura y el avance de los indicadores por establecimiento.'
                   : 'Registre la configuración anual y el avance mensual de los indicadores de su establecimiento.'}
@@ -826,7 +826,7 @@ export function App() {
           )}
 
           <footer className="py-6 text-center text-xs text-slate-400">
-            Secretaría Municipal de Salud · Sistema SICOFS - Soluciones Informáticas LBC · 📱 62108877
+            Dirección Municipal de Salud · Sistema SICOFS - Soluciones Informáticas LBC · 📱 62108877
           </footer>
         </main>
       </div>
